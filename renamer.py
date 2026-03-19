@@ -1,40 +1,50 @@
+# renamer.py
+# Batch renames media files to camera roll convention (e.g. A001C001.mov)
+# Logs every rename to a CSV file for reference
+
 from pathlib import Path
-import csv                          # NEW
-from datetime import datetime       # NEW
+import csv
+from datetime import datetime
 
-folder = Path("/Users/rachmcintire/Desktop/test_folder")
-log_file = folder / "rename_log.csv"  # NEW — log saves in the same folder
+# --- SETTINGS — edit these before running ---
+FOLDER = Path("/Users/rachmcintire/Desktop/test_folder")
+CAMERA = "A"       # Camera letter (A, B, C...)
+REEL = 1           # Starting reel number
+CLIP = 1           # Starting clip number
+DRY_RUN = True     # True = preview only. Change to False to actually rename.
 
-media_extensions = {".mov", ".mp4", ".mxf", ".dpx", ".exr", ".jpg", ".jpeg"}
+# --- File types to include ---
+MEDIA_EXTENSIONS = {".mov", ".mp4", ".mxf", ".dpx", ".exr", ".jpg", ".jpeg"}
 
-camera = "A"
-reel = 1
-clip = 1
-dry_run = False
+# --- Find and sort all media files in the folder ---
+files = sorted([f for f in FOLDER.iterdir() if f.suffix.lower() in MEDIA_EXTENSIONS])
 
-files = sorted([f for f in folder.iterdir() if f.suffix.lower() in media_extensions])
+if not files:
+    print("No media files found. Check folder path and try again.")
+else:
+    log_entries = []
 
-log_entries = []  # NEW — collects each rename as we go
+    for i, file in enumerate(files):
+        # Build the new filename
+        new_name = f"{CAMERA}{REEL:03d}C{CLIP + i:03d}{file.suffix.lower()}"
+        new_path = FOLDER / new_name
 
-for i, file in enumerate(files):
-    new_name = f"{camera}{reel:03d}C{clip + i:03d}{file.suffix.lower()}"
-    new_path = folder / new_name
+        if DRY_RUN:
+            print(f"[DRY RUN] {file.name}  →  {new_name}")
+        else:
+            file.rename(new_path)
+            print(f"Renamed: {file.name}  →  {new_name}")
+            log_entries.append({
+                "timestamp": datetime.now().isoformat(),
+                "original": file.name,
+                "renamed": new_name
+            })
 
-    if dry_run:
-        print(f"[DRY RUN] {file.name}  →  {new_name}")
-    else:
-        file.rename(new_path)
-        print(f"Renamed: {file.name}  →  {new_name}")
-        log_entries.append({          # NEW
-            "timestamp": datetime.now().isoformat(),
-            "original": file.name,
-            "renamed": new_name
-        })
-
-# NEW — write the log after all renames are done
-if not dry_run and log_entries:
-    with open(log_file, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["timestamp", "original", "renamed"])
-        writer.writeheader()
-        writer.writerows(log_entries)
-    print(f"\nLog saved to: {log_file}")
+    # Save log to CSV (only when not a dry run)
+    if not DRY_RUN and log_entries:
+        log_file = FOLDER / "rename_log.csv"
+        with open(log_file, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["timestamp", "original", "renamed"])
+            writer.writeheader()
+            writer.writerows(log_entries)
+        print(f"\nLog saved to: {log_file}")
