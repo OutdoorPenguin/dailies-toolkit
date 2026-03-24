@@ -676,11 +676,16 @@ SHA-256: {clip_data.get('checksum_sha256', '')}
                 if use_retime.isChecked() and retime_field.text():
                     try:
                         target_fps = float(retime_field.text())
-                        source_fps_str = clip.get("fps", "24")
-                        source_fps = float(source_fps_str) if source_fps_str else 24.0
+                        source_fps_str = str(clip.get("fps", "24"))
+                        # Handle fractional fps like "30000/1001"
+                        if "/" in source_fps_str:
+                            num, den = source_fps_str.split("/")
+                            source_fps = float(num) / float(den)
+                        else:
+                            source_fps = float(source_fps_str) if source_fps_str else 24.0
                         retime = target_fps / source_fps
-                    except:
-                        pass
+                    except Exception as e:
+                        self.transcode_log.append(f"⚠️  Retime calculation failed: {e}")
 
                 self.transcode_log.append(f"Transcoding: {file_name}...")
                 QApplication.processEvents()

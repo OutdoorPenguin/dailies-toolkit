@@ -129,6 +129,30 @@ def transcode(source_path, output_path, codec, cdl=None,
         cmd += ["-vf", filter_chain]
 
     cmd += codec_args
+
+    # Force output frame rate if retiming
+    if retime and retime != 1.0:
+        source_fps = None
+        try:
+            probe = subprocess.run(
+                [FFPROBE, "-v", "quiet", "-print_format", "json", "-show_streams", str(source_path)],
+                capture_output=True, text=True
+            )
+            import json
+            data = json.loads(probe.stdout)
+            for stream in data.get("streams", []):
+                if stream.get("codec_type") == "video":
+                    fps_str = stream.get("r_frame_rate", "24/1")
+                    num, den = fps_str.split("/")
+                    source_fps = float(num) / float(den)
+                    break
+        except:
+            source_fps = 24.0
+
+        if source_fps:
+            target_fps = source_fps * retime
+            cmd += ["-r", str(round(target_fps, 3))]
+
     cmd += ["-c:a", "copy"]
     cmd += [str(output_path)]
 
