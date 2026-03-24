@@ -1,6 +1,6 @@
 # dailies-toolkit 🎬
 
-A suite of Python tools for post-production dailies workflow. Built for film and TV — handles ingest, metadata, color, and notifications.
+A suite of Python tools for post-production dailies workflow. Built for film and TV — handles ingest, metadata, color, transcoding, and notifications.
 
 ---
 
@@ -10,10 +10,13 @@ A suite of Python tools for post-production dailies workflow. Built for film and
 Full desktop application for managing dailies. Features:
 - Drag and drop media ingest via ffprobe
 - CSV import from Premiere, Resolve, Avid, Silverstack, and Pomfort
-- 39-column database with search, sort, and horizontal scroll
+- 42-column database with search, sort, and horizontal scroll
 - Filter by show, episode, and camera
 - Saved views with right-click delete
 - Consistency report — flags mixed codecs, resolutions, and frame rates
+- Checksum generation and verification (MD5, xxHash, SHA-256)
+- Transcode pipeline — ProRes, H.264, H.265, DNxHD with CDL and LUT support
+- Burnins — filename, timecode, reel, show, episode, scene, camera, date, custom text
 - Slack notifications
 - Custom column export to CSV, ALE, FCP7 XML, FCPXML, and EDL
 
@@ -30,7 +33,7 @@ Reads a media ingest log CSV and flags potential issues — duplicate filenames,
 Scans a folder of media files and pulls codec, resolution, and frame rate via ffprobe. Flags mixed codecs, resolutions, and frame rates.
 
 ### 🗄️ Dailies Database (`dailies_db.py`)
-Creates the SQLite database schema — 39 columns covering video, audio, camera, lens, exposure, color, and production metadata.
+Creates the SQLite database schema — 42 columns covering video, audio, camera, lens, exposure, color, checksums, and production metadata.
 
 ### 📥 CSV Importer (`import_clips.py`)
 Imports clip metadata from CSV exports into the database. Normalizes column names automatically across different app exports. Flags duplicates per show.
@@ -48,7 +51,10 @@ Sends a formatted Slack summary after ingest — show, episode, clip count, code
 Handles all export formats: CSV, ALE, FCP7 XML, FCPXML, EDL.
 
 ### 🔐 Checksum Verifier (`checksum.py`)
-Generates and verifies MD5, xxHash, and SHA-256 checksums for media files. Checksums are stored in the database and can be verified later via the Verify Files button in the app to confirm files haven't been corrupted or changed.
+Generates and verifies MD5, xxHash, and SHA-256 checksums for media files. Checksums are stored in the database and can be verified later via the Verify Files button in the app.
+
+### 🎬 Transcoder (`transcoder.py`)
+Handles ffmpeg transcoding with CDL baked in, LUT application (input LUT → CDL → output LUT), burnins, and retime. Supports ProRes 422/HQ/LT/4444, H.264, H.265, DNxHD, and DNxHR.
 
 ### ⭐ Views (`views.py`)
 Saves and loads favorite filter combos in the app sidebar.
@@ -58,9 +64,10 @@ Saves and loads favorite filter combos in the app sidebar.
 ## Requirements
 - Python 3.x
 - ffmpeg / ffprobe — `brew install ffmpeg`
-- `pip install watchdog pandas requests python-dotenv PyQt6 Pillow`
+- `pip install watchdog pandas requests python-dotenv PyQt6 Pillow xxhash`
 - DB Browser for SQLite — https://sqlitebrowser.org/dl/
-- xxhash - `pip install watchdog pandas requests python-dotenv PyQt6 Pillow xxhash`
+
+> **Note:** Burnins require ffmpeg compiled with freetype (`drawtext` filter). The standard Homebrew bottle does not include this. Transcoding without burnins works with the standard build.
 
 ---
 
@@ -79,4 +86,4 @@ The `.app` will appear in the `dist` folder. Zip and share — no Python needed 
 
 ---
 
-*Built by a post production professional learning Python. Phase 2 (transcode pipeline, LUT application, audio sync) coming soon.*
+*Built by a post production professional learning Python. Still in active development — retime, batch exports, audio sync, and playback preview coming soon.*
