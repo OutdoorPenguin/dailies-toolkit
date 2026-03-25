@@ -11,25 +11,60 @@ FFPROBE = "/opt/homebrew/bin/ffprobe"
 
 # --- Codec settings ---
 CODEC_MAP = {
-    "ProRes 422 LT":  ["-c:v", "prores_ks", "-profile:v", "1", "-pix_fmt", "yuv422p10le"],
-    "ProRes 422":     ["-c:v", "prores_ks", "-profile:v", "2", "-pix_fmt", "yuv422p10le"],
-    "ProRes 422 HQ":  ["-c:v", "prores_ks", "-profile:v", "3", "-pix_fmt", "yuv422p10le"],
-    "ProRes 4444":    ["-c:v", "prores_ks", "-profile:v", "4", "-pix_fmt", "yuv444p10le"],
-    "H.264":          ["-c:v", "libx264", "-crf", "18", "-preset", "slow", "-pix_fmt", "yuv420p"],
-    "H.265":          ["-c:v", "libx265", "-crf", "18", "-preset", "slow", "-pix_fmt", "yuv420p"],
-    "DNxHD 115":      ["-c:v", "dnxhd", "-b:v", "115M", "-pix_fmt", "yuv422p"],
-    "DNxHR SQ":       ["-c:v", "dnxhd", "-profile:v", "dnxhr_sq", "-pix_fmt", "yuv422p10le"],
+    # ProRes
+    "ProRes 422 LT":      ["-c:v", "prores_ks", "-profile:v", "1", "-pix_fmt", "yuv422p10le"],
+    "ProRes 422":         ["-c:v", "prores_ks", "-profile:v", "2", "-pix_fmt", "yuv422p10le"],
+    "ProRes 422 HQ":      ["-c:v", "prores_ks", "-profile:v", "3", "-pix_fmt", "yuv422p10le"],
+    "ProRes 4444":        ["-c:v", "prores_ks", "-profile:v", "4", "-pix_fmt", "yuv444p10le"],
+    "ProRes 4444 XQ":     ["-c:v", "prores_ks", "-profile:v", "5", "-pix_fmt", "yuv444p10le"],
+
+    # H.264
+    "H.264 High Quality": ["-c:v", "libx264", "-crf", "16", "-preset", "slow", "-pix_fmt", "yuv420p"],
+    "H.264":              ["-c:v", "libx264", "-crf", "18", "-preset", "slow", "-pix_fmt", "yuv420p"],
+    "H.264 Web":          ["-c:v", "libx264", "-crf", "23", "-preset", "fast", "-pix_fmt", "yuv420p"],
+
+    # H.265
+    "H.265 High Quality": ["-c:v", "libx265", "-crf", "16", "-preset", "slow", "-pix_fmt", "yuv420p"],
+    "H.265":              ["-c:v", "libx265", "-crf", "18", "-preset", "slow", "-pix_fmt", "yuv420p"],
+    "H.265 Web":          ["-c:v", "libx265", "-crf", "28", "-preset", "fast", "-pix_fmt", "yuv420p"],
+
+    # DNxHD/DNxHR
+    "DNxHD 115":          ["-c:v", "dnxhd", "-b:v", "115M", "-pix_fmt", "yuv422p"],
+    "DNxHR SQ":           ["-c:v", "dnxhd", "-profile:v", "dnxhr_sq", "-pix_fmt", "yuv422p10le"],
+    "DNxHR HQ":           ["-c:v", "dnxhd", "-profile:v", "dnxhr_hq", "-pix_fmt", "yuv422p10le"],
+    "DNxHR HQX":          ["-c:v", "dnxhd", "-profile:v", "dnxhr_hqx", "-pix_fmt", "yuv422p12le"],
+    "DNxHR 444":          ["-c:v", "dnxhd", "-profile:v", "dnxhr_444", "-pix_fmt", "yuv444p10le"],
+
+    # JPEG 2000
+    "JPEG 2000":          ["-c:v", "libopenjpeg", "-pix_fmt", "yuv422p10le"],
+
+    # Uncompressed
+    "Uncompressed 10-bit": ["-c:v", "v210", "-pix_fmt", "yuv422p10le"],
+
+    # MXF OP1a (uses H.264 inside MXF wrapper)
+    "MXF OP1a (H.264)":   ["-c:v", "libx264", "-crf", "18", "-preset", "slow", "-pix_fmt", "yuv420p"],
 }
 
 CODEC_EXTENSIONS = {
-    "ProRes 422 LT":  ".mov",
-    "ProRes 422":     ".mov",
-    "ProRes 422 HQ":  ".mov",
-    "ProRes 4444":    ".mov",
-    "H.264":          ".mp4",
-    "H.265":          ".mp4",
-    "DNxHD 115":      ".mxf",
-    "DNxHR SQ":       ".mxf",
+    "ProRes 422 LT":       ".mov",
+    "ProRes 422":          ".mov",
+    "ProRes 422 HQ":       ".mov",
+    "ProRes 4444":         ".mov",
+    "ProRes 4444 XQ":      ".mov",
+    "H.264 High Quality":  ".mp4",
+    "H.264":               ".mp4",
+    "H.264 Web":           ".mp4",
+    "H.265 High Quality":  ".mp4",
+    "H.265":               ".mp4",
+    "H.265 Web":           ".mp4",
+    "DNxHD 115":           ".mxf",
+    "DNxHR SQ":            ".mxf",
+    "DNxHR HQ":            ".mxf",
+    "DNxHR HQX":           ".mxf",
+    "DNxHR 444":           ".mxf",
+    "JPEG 2000":           ".mxf",
+    "Uncompressed 10-bit": ".mov",
+    "MXF OP1a (H.264)":    ".mxf",
 }
 
 # --- Position map for burnins ---
