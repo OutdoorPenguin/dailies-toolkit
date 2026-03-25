@@ -92,6 +92,10 @@ class DailiesApp(QMainWindow):
         transcode_btn.clicked.connect(self.open_transcode_dialog)
         toolbar.addWidget(transcode_btn)
 
+        render_btn = QPushButton("Render")
+        render_btn.clicked.connect(self.open_render_dialog)
+        toolbar.addWidget(render_btn)
+
         # --- Main layout ---
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -102,6 +106,15 @@ class DailiesApp(QMainWindow):
         # Left sidebar
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
+
+        # --- Active Show ---
+        left_layout.addWidget(QLabel("Active Show"))
+        self.active_show_combo = QComboBox()
+        self.active_show_combo.addItem("All Shows")
+        left_layout.addWidget(self.active_show_combo)
+        self.active_show_combo.currentTextChanged.connect(self.set_active_show)
+
+        left_layout.addWidget(QLabel(""))  # spacer
 
         left_layout.addWidget(QLabel("Filters"))
 
@@ -180,6 +193,13 @@ class DailiesApp(QMainWindow):
         self.populate_filters()
         self.refresh_saved_views()
 
+    def set_active_show(self, show):
+        """Sets the active show and filters the table accordingly."""
+        if show == "All Shows":
+            self.show_filter.setCurrentText("All")
+        else:
+            self.show_filter.setCurrentText(show)
+
     def load_clips(self):
         """Loads all clips from the database and populates the table."""
         conn = sqlite3.connect(DB_FILE)
@@ -227,6 +247,18 @@ class DailiesApp(QMainWindow):
         cursor.execute("SELECT DISTINCT camera_id FROM clips WHERE camera_id != '' ORDER BY camera_id")
         for row in cursor.fetchall():
             self.camera_filter.addItem(row[0])
+
+        # Active show combo
+        current_active = self.active_show_combo.currentText()
+        self.active_show_combo.blockSignals(True)
+        self.active_show_combo.clear()
+        self.active_show_combo.addItem("All Shows")
+        cursor.execute("SELECT DISTINCT show FROM clips WHERE show != '' ORDER BY show")
+        for row in cursor.fetchall():
+            self.active_show_combo.addItem(row[0])
+        if current_active:
+            self.active_show_combo.setCurrentText(current_active)
+        self.active_show_combo.blockSignals(False)
 
         conn.close()
 
@@ -503,14 +535,12 @@ SHA-256: {clip_data.get('checksum_sha256', '')}
         output_lut_row.addWidget(output_lut_browse)
         output_lut_row.addWidget(output_lut_clear)
         lut_layout.addLayout(output_lut_row)
-
         layout.addWidget(lut_group)
 
         # --- Burnins ---
         burnin_group = QGroupBox("Burnins (requires ffmpeg with freetype — see setup docs)")
         burnin_layout = QVBoxLayout(burnin_group)
 
-        # Header row
         header_row = QHBoxLayout()
         header_row.addWidget(QLabel("Field"), 1)
         header_row.addWidget(QLabel("Enable"), 0)
@@ -545,7 +575,6 @@ SHA-256: {clip_data.get('checksum_sha256', '')}
 
             burnin_layout.addLayout(row)
 
-        # Style row
         style_row = QHBoxLayout()
         box_check = QCheckBox("Black box")
         box_check.setChecked(True)
@@ -595,8 +624,46 @@ SHA-256: {clip_data.get('checksum_sha256', '')}
         btn_row = QHBoxLayout()
         cancel_btn = QPushButton("Cancel")
         cancel_btn.clicked.connect(dialog.reject)
+
+        save_preset_btn = QPushButton("Save as Preset")
         go_btn = QPushButton("Start Transcode")
+
+        def save_as_preset():
+            from presets import save_preset
+            active_show = self.active_show_combo.currentText()
+            if active_show == "All Shows":
+                QMessageBox.warning(dialog, "No Show", "Please select an active show first.")
+                return
+            name, ok = QInputDialog.getText(dialog, "Preset Name",
+                                            f"Save preset for {active_show}:")
+            if not ok or not name:
+                return
+            settings = {
+                "source_folder": source_field.text(),
+                "output_folder": output_field.text(),
+                "codec": codec_combo.currentText(),
+                "suffix": suffix_field.text(),
+                "use_cdl": use_cdl.isChecked(),
+                "input_lut": input_lut_field.text(),
+                "output_lut": output_lut_field.text(),
+                "retime_enabled": use_retime.isChecked(),
+                "retime_fps": retime_field.text(),
+                "burnins": {
+                    field: {
+                        "enabled": cb.isChecked(),
+                        "position": burnin_positions[field].currentText()
+                    }
+                    for field, cb in burnin_checks.items()
+                },
+                "fontsize": fontsize_spin.value(),
+                "box_opacity": opacity_slider.value()
+            }
+            save_preset(active_show, name, settings)
+            QMessageBox.information(dialog, "Saved", f"Preset '{name}' saved for {active_show}.")
+
+        save_preset_btn.clicked.connect(save_as_preset)
         btn_row.addWidget(cancel_btn)
+        btn_row.addWidget(save_preset_btn)
         btn_row.addStretch()
         btn_row.addWidget(go_btn)
         layout.addLayout(btn_row)
@@ -677,7 +744,6 @@ SHA-256: {clip_data.get('checksum_sha256', '')}
                     try:
                         target_fps = float(retime_field.text())
                         source_fps_str = str(clip.get("fps", "24"))
-                        # Handle fractional fps like "30000/1001"
                         if "/" in source_fps_str:
                             num, den = source_fps_str.split("/")
                             source_fps = float(num) / float(den)
@@ -705,6 +771,14 @@ SHA-256: {clip_data.get('checksum_sha256', '')}
                 QApplication.processEvents()
 
             self.transcode_log.append(f"\nFinished — {done} done, {failed} failed.")
+
+            if failed == 0:
+                QMessageBox.information(dialog, "Transcode Complete",
+                                        f"✅ All {done} clips transcoded successfully.")
+            else:
+                QMessageBox.warning(dialog, "Transcode Complete",
+                                    f"Finished with issues:\n✅ {done} succeeded\n❌ {failed} failed\n\nCheck the log for details.")
+            dialog.accept()
 
         go_btn.clicked.connect(start_transcode)
         dialog.exec()
@@ -1071,6 +1145,174 @@ SHA-256: {clip_data.get('checksum_sha256', '')}
         self.episode_filter.setCurrentText(filters.get("episode", "All"))
         self.camera_filter.setCurrentText(filters.get("camera", "All"))
         self.search_bar.setText(filters.get("search", ""))
+
+    def open_render_dialog(self):
+        """Opens the render dialog with presets for the active show."""
+        from presets import load_presets_for_show
+        from transcoder import transcode, CODEC_EXTENSIONS
+
+        active_show = self.active_show_combo.currentText()
+        if active_show == "All Shows":
+            QMessageBox.warning(self, "No Show", "Please select an active show first.")
+            return
+
+        presets = load_presets_for_show(active_show)
+        if not presets:
+            QMessageBox.warning(self, "No Presets",
+                                f"No transcode presets found for {active_show}.\n\nUse the Transcode button to create and save a preset first.")
+            return
+
+        # Get clips for active show
+        conn = sqlite3.connect(DB_FILE)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM clips")
+        all_clips = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+
+        visible_clips = []
+        for i, clip in enumerate(all_clips):
+            if not self.clip_table.isRowHidden(i):
+                visible_clips.append(clip)
+
+        if not visible_clips:
+            QMessageBox.warning(self, "Render", "No clips to render.")
+            return
+
+        # --- Render dialog ---
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Render — {active_show}")
+        dialog.setMinimumSize(600, 400)
+        layout = QVBoxLayout(dialog)
+
+        layout.addWidget(QLabel(f"Show: {active_show}"))
+        layout.addWidget(QLabel(f"Clips: {len(visible_clips)}"))
+        layout.addWidget(QLabel(""))
+        layout.addWidget(QLabel("Select presets to run:"))
+
+        preset_checks = {}
+        for preset_name, settings in presets.items():
+            row = QHBoxLayout()
+            cb = QCheckBox(preset_name)
+            cb.setChecked(True)
+            summary = QLabel(
+                f"{settings.get('codec', '')} → {settings.get('suffix', '')}  |  CDL: {'Yes' if settings.get('use_cdl') else 'No'}  |  LUT: {'Yes' if settings.get('output_lut') else 'No'}")
+            summary.setStyleSheet("color: gray; font-size: 11px;")
+            row.addWidget(cb)
+            row.addWidget(summary)
+            row.addStretch()
+            layout.addLayout(row)
+            preset_checks[preset_name] = cb
+
+        layout.addStretch()
+
+        progress = QProgressBar()
+        progress.setMaximum(len(visible_clips) * len(presets))
+        progress.setValue(0)
+        layout.addWidget(progress)
+
+        self.transcode_log = QTextEdit()
+        self.transcode_log.setReadOnly(True)
+        self.transcode_log.setMaximumHeight(120)
+        layout.addWidget(self.transcode_log)
+
+        btn_row = QHBoxLayout()
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        go_btn = QPushButton("Render")
+        btn_row.addWidget(cancel_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(go_btn)
+        layout.addLayout(btn_row)
+
+        def start_render():
+            total_done = 0
+            total_failed = 0
+
+            for preset_name, cb in preset_checks.items():
+                if not cb.isChecked():
+                    continue
+
+                settings = presets[preset_name]
+                codec = settings.get("codec", "ProRes 422")
+                suffix = settings.get("suffix", "_OUT")
+                source_dir = Path(settings.get("source_folder", ""))
+                output_dir = Path(settings.get("output_folder", ""))
+                ext = CODEC_EXTENSIONS.get(codec, ".mov")
+
+                if not source_dir.exists() or not output_dir.exists():
+                    self.transcode_log.append(f"⚠️  Skipping '{preset_name}' — folder not found")
+                    continue
+
+                self.transcode_log.append(f"\n--- Running preset: {preset_name} ---")
+
+                for clip in visible_clips:
+                    file_name = clip.get("file_name", "")
+                    source_file = source_dir / file_name
+
+                    if not source_file.exists():
+                        self.transcode_log.append(f"⚠️  Not found: {file_name}")
+                        total_failed += 1
+                        continue
+
+                    stem = Path(file_name).stem
+                    output_file = output_dir / f"{stem}{suffix}{ext}"
+
+                    cdl = None
+                    if settings.get("use_cdl") and clip.get("cdl_slope"):
+                        cdl = {
+                            "slope": clip.get("cdl_slope"),
+                            "offset": clip.get("cdl_offset"),
+                            "power": clip.get("cdl_power"),
+                            "saturation": clip.get("cdl_saturation", "1.0")
+                        }
+
+                    input_lut = settings.get("input_lut") or None
+                    output_lut = settings.get("output_lut") or None
+
+                    retime = None
+                    if settings.get("retime_enabled") and settings.get("retime_fps"):
+                        try:
+                            target_fps = float(settings["retime_fps"])
+                            source_fps_str = str(clip.get("fps", "24"))
+                            if "/" in source_fps_str:
+                                num, den = source_fps_str.split("/")
+                                source_fps = float(num) / float(den)
+                            else:
+                                source_fps = float(source_fps_str) if source_fps_str else 24.0
+                            retime = target_fps / source_fps
+                        except:
+                            pass
+
+                    self.transcode_log.append(f"Rendering: {file_name}...")
+                    QApplication.processEvents()
+
+                    ok, msg = transcode(source_file, output_file, codec, cdl=cdl,
+                                        input_lut=input_lut, output_lut=output_lut,
+                                        retime=retime)
+
+                    if ok:
+                        self.transcode_log.append(f"✅  Done: {output_file.name}")
+                        total_done += 1
+                    else:
+                        self.transcode_log.append(f"❌  Failed: {file_name} — {msg[:200]}")
+                        total_failed += 1
+
+                    progress.setValue(total_done + total_failed)
+                    QApplication.processEvents()
+
+            self.transcode_log.append(f"\nRender complete — {total_done} done, {total_failed} failed.")
+
+            if total_failed == 0:
+                QMessageBox.information(dialog, "Render Complete",
+                                        f"✅ All {total_done} clips rendered successfully.")
+            else:
+                QMessageBox.warning(dialog, "Render Complete",
+                                    f"Finished with issues:\n✅ {total_done} succeeded\n❌ {total_failed} failed")
+            dialog.accept()
+
+        go_btn.clicked.connect(start_render)
+        dialog.exec()
 
 # --- Run ---
 app = QApplication(sys.argv)
