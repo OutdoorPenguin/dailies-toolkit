@@ -7,3 +7,13 @@ rename_log.csv
 .idea/
 .env
 Slack Tokens.rtf
+*.csv
+*.db
+dist/
+build/
+*.spec
+__pycache__/
+saved_views.json
+transcode_presets.json
+CDL_Extractor.iconset/
+*.cdl
