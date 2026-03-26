@@ -101,6 +101,10 @@ class DailiesApp(QMainWindow):
         sync_btn.clicked.connect(self.open_sync_dialog)
         toolbar.addWidget(sync_btn)
 
+        sound_report_btn = QPushButton("Sound Report")
+        sound_report_btn.clicked.connect(self.open_sound_report_dialog)
+        toolbar.addWidget(sound_report_btn)
+
         # --- Main layout ---
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -1353,6 +1357,195 @@ SHA-256: {clip_data.get('checksum_sha256', '')}"""
         self.episode_filter.setCurrentText(filters.get("episode", "All"))
         self.camera_filter.setCurrentText(filters.get("camera", "All"))
         self.search_bar.setText(filters.get("search", ""))
+
+    def open_sound_report_dialog(self):
+        """Opens the sound report import dialog."""
+        from sound_report import import_sound_report
+
+        active_show = self.active_show_combo.currentText()
+        if active_show == "All Shows":
+            QMessageBox.warning(self, "No Show", "Please select an active show first.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Import Sound Report")
+        dialog.setMinimumSize(600, 400)
+        layout = QVBoxLayout(dialog)
+
+        layout.addWidget(QLabel(f"Importing sound report for: {active_show}"))
+
+        # File picker
+        layout.addWidget(QLabel("Sound report CSV:"))
+        file_row = QHBoxLayout()
+        file_field = QLineEdit()
+        file_field.setPlaceholderText("/path/to/sound_report.csv")
+        file_browse = QPushButton("Browse")
+        file_browse.clicked.connect(lambda: file_field.setText(
+            QFileDialog.getOpenFileName(dialog, "Select Sound Report", "", "CSV Files (*.csv)")[0]
+        ))
+        file_row.addWidget(file_field)
+        file_row.addWidget(file_browse)
+        layout.addLayout(file_row)
+
+        # FPS
+        fps_row = QHBoxLayout()
+        fps_row.addWidget(QLabel("Project FPS:"))
+        fps_combo = QComboBox()
+        fps_combo.addItems(["23.976", "24", "25", "29.97", "30", "48", "50", "59.94", "60"])
+        fps_combo.setCurrentText("24")
+        fps_combo.setMaximumWidth(100)
+        fps_row.addWidget(fps_combo)
+        fps_row.addStretch()
+        layout.addLayout(fps_row)
+
+        # Tolerance
+        tolerance_row = QHBoxLayout()
+        tolerance_row.addWidget(QLabel("TC match tolerance (frames):"))
+        tolerance_spin = QSpinBox()
+        tolerance_spin.setRange(0, 10)
+        tolerance_spin.setValue(2)
+        tolerance_spin.setMaximumWidth(60)
+        tolerance_row.addWidget(tolerance_spin)
+        tolerance_row.addStretch()
+        layout.addLayout(tolerance_row)
+
+        # Results log
+        layout.addWidget(QLabel("Results:"))
+        results_log = QTextEdit()
+        results_log.setReadOnly(True)
+        results_log.setMinimumHeight(150)
+        layout.addWidget(results_log)
+
+        # Buttons
+        btn_row = QHBoxLayout()
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        go_btn = QPushButton("Import")
+        btn_row.addWidget(cancel_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(go_btn)
+        layout.addLayout(btn_row)
+
+    def open_sound_report_dialog(self):
+        """Opens the sound report import dialog."""
+        from sound_report import import_sound_report
+
+        active_show = self.active_show_combo.currentText()
+        if active_show == "All Shows":
+            QMessageBox.warning(self, "No Show", "Please select an active show first.")
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Import Sound Report")
+        dialog.setMinimumSize(600, 400)
+        layout = QVBoxLayout(dialog)
+
+        layout.addWidget(QLabel(f"Importing sound report for: {active_show}"))
+
+        # File picker
+        layout.addWidget(QLabel("Sound report CSV:"))
+        file_row = QHBoxLayout()
+        file_field = QLineEdit()
+        file_field.setPlaceholderText("/path/to/sound_report.csv")
+        file_browse = QPushButton("Browse")
+        file_browse.clicked.connect(lambda: file_field.setText(
+            QFileDialog.getOpenFileName(dialog, "Select Sound Report", "", "CSV Files (*.csv)")[0]
+        ))
+        file_row.addWidget(file_field)
+        file_row.addWidget(file_browse)
+        layout.addLayout(file_row)
+
+        # FPS
+        fps_row = QHBoxLayout()
+        fps_row.addWidget(QLabel("Project FPS:"))
+        fps_combo = QComboBox()
+        fps_combo.addItems(["23.976", "24", "25", "29.97", "30", "48", "50", "59.94", "60"])
+        fps_combo.setCurrentText("24")
+        fps_combo.setMaximumWidth(100)
+        fps_row.addWidget(fps_combo)
+        fps_row.addStretch()
+        layout.addLayout(fps_row)
+
+        # Tolerance
+        tolerance_row = QHBoxLayout()
+        tolerance_row.addWidget(QLabel("TC match tolerance (frames):"))
+        tolerance_spin = QSpinBox()
+        tolerance_spin.setRange(0, 10)
+        tolerance_spin.setValue(2)
+        tolerance_spin.setMaximumWidth(60)
+        tolerance_row.addWidget(tolerance_spin)
+        tolerance_row.addStretch()
+        layout.addLayout(tolerance_row)
+
+        # Results log
+        layout.addWidget(QLabel("Results:"))
+        results_log = QTextEdit()
+        results_log.setReadOnly(True)
+        results_log.setMinimumHeight(150)
+        layout.addWidget(results_log)
+
+        # Buttons
+        btn_row = QHBoxLayout()
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(dialog.reject)
+        go_btn = QPushButton("Import")
+        btn_row.addWidget(cancel_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(go_btn)
+        layout.addLayout(btn_row)
+
+        def run_import():
+            file_path = file_field.text()
+            if not file_path or not Path(file_path).exists():
+                QMessageBox.warning(dialog, "Error", "Please select a valid sound report CSV.")
+                return
+
+            try:
+                fps = float(fps_combo.currentText())
+                tolerance = tolerance_spin.value()
+                matched, wild, conflicts = import_sound_report(
+                    file_path, active_show, fps=fps, tolerance_frames=tolerance
+                )
+
+                results_log.clear()
+                results_log.append(f"✅ Matched: {len(matched)} clips")
+                results_log.append(f"🎙️ Wild/unmatched: {len(wild)} audio files")
+                results_log.append(f"⚠️  Conflicts: {len(conflicts)}")
+
+                if matched:
+                    results_log.append(f"\n--- Matched ---")
+                    for f in matched:
+                        results_log.append(f"  ✅ {f}")
+
+                if wild:
+                    results_log.append(f"\n--- Wild takes (no video match) ---")
+                    for f in wild:
+                        results_log.append(f"  🎙️ {f}")
+
+                if conflicts:
+                    results_log.append(f"\n--- Conflicts (multiple video matches) ---")
+                    for c in conflicts:
+                        results_log.append(f"  ⚠️  {c['audio_file']} @ {c['start_tc']}")
+                        for m in c["matches"]:
+                            results_log.append(f"      → {m}")
+                    results_log.append(f"\nConflicts were not imported — resolve manually.")
+
+                self.load_clips()
+                self.populate_filters()
+                if not conflicts:
+                    QMessageBox.information(dialog, "Import Complete",
+                                            f"✅ {len(matched)} matched\n🎙️ {len(wild)} wild takes\n⚠️  {len(conflicts)} conflicts")
+                    dialog.accept()
+                else:
+                    go_btn.setText("Done")
+                    go_btn.clicked.disconnect()
+                    go_btn.clicked.connect(dialog.accept)
+
+            except Exception as e:
+                QMessageBox.critical(dialog, "Import Error", str(e))
+
+        go_btn.clicked.connect(run_import)
+        dialog.exec()
 
 # --- Run ---
 app = QApplication(sys.argv)

@@ -56,6 +56,12 @@ cursor.execute("""
         checksum_xxhash TEXT,
         checksum_sha256 TEXT,
         status TEXT
+        sound_roll TEXT,
+        audio_track_names TEXT,
+        sound_tc_start TEXT,
+        sound_tc_end TEXT,
+        sound_notes TEXT,
+        is_wild INTEGER DEFAULT 0
     )
 """)
 
