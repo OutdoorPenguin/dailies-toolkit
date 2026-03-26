@@ -26,7 +26,9 @@ ALL_COLUMNS = [
     "focal_length", "nd_filter", "location", "dop", "director",
     "production_company", "input_lut", "output_lut",
     "cdl_slope", "cdl_offset", "cdl_power", "cdl_saturation",
-    "checksum_md5", "checksum_xxhash", "checksum_sha256", "status"
+    "checksum_md5", "checksum_xxhash", "checksum_sha256", "status",
+    "sound_roll", "audio_track_names", "sound_tc_start", "sound_tc_end",
+    "sound_notes", "is_wild"
 ]
 
 DISPLAY_HEADERS = [
@@ -39,7 +41,9 @@ DISPLAY_HEADERS = [
     "Focal Length", "ND", "Location", "DOP", "Director",
     "Production Co", "Input LUT", "Output LUT",
     "CDL Slope", "CDL Offset", "CDL Power", "CDL Sat",
-    "MD5", "xxHash", "SHA-256", "Status"
+    "MD5", "xxHash", "SHA-256", "Status",
+    "Sound Roll", "Track Names", "Sound TC In", "Sound TC Out",
+    "Sound Notes", "Wild"
 ]
 
 BURNIN_FIELDS = [
