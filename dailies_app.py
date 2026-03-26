@@ -589,7 +589,7 @@ SHA-256: {clip_data.get('checksum_sha256', '')}"""
 
         self.transcode_log = QTextEdit()
         self.transcode_log.setReadOnly(True)
-        self.transcode_log.setMaximumHeight(100)
+        self.transcode_log.setMinimumHeight(100)
         layout.addWidget(self.transcode_log)
 
         btn_row = QHBoxLayout()
@@ -722,10 +722,14 @@ SHA-256: {clip_data.get('checksum_sha256', '')}"""
             self.transcode_log.append(f"\nFinished — {done} done, {failed} failed.")
             if failed == 0:
                 QMessageBox.information(dialog, "Transcode Complete", f"✅ All {done} clips transcoded successfully.")
+                dialog.accept()
             else:
                 QMessageBox.warning(dialog, "Transcode Complete",
-                    f"Finished with issues:\n✅ {done} succeeded\n❌ {failed} failed\n\nCheck the log for details.")
-            dialog.accept()
+                                    f"Finished with issues:\n✅ {done} succeeded\n❌ {failed} failed\n\nSee log below for details.")
+                # Don't close — let user read the log
+                go_btn.setText("Close")
+                go_btn.clicked.disconnect()
+                go_btn.clicked.connect(dialog.accept)
 
         go_btn.clicked.connect(start_transcode)
         dialog.exec()
@@ -783,7 +787,7 @@ SHA-256: {clip_data.get('checksum_sha256', '')}"""
 
         self.transcode_log = QTextEdit()
         self.transcode_log.setReadOnly(True)
-        self.transcode_log.setMaximumHeight(120)
+        self.transcode_log.setMinimumHeight(120)
         layout.addWidget(self.transcode_log)
 
         btn_row = QHBoxLayout()
@@ -869,10 +873,13 @@ SHA-256: {clip_data.get('checksum_sha256', '')}"""
             self.transcode_log.append(f"\nRender complete — {total_done} done, {total_failed} failed.")
             if total_failed == 0:
                 QMessageBox.information(dialog, "Render Complete", f"✅ All {total_done} clips rendered successfully.")
+                dialog.accept()
             else:
                 QMessageBox.warning(dialog, "Render Complete",
-                    f"Finished with issues:\n✅ {total_done} succeeded\n❌ {total_failed} failed")
-            dialog.accept()
+                                    f"Finished with issues:\n✅ {total_done} succeeded\n❌ {total_failed} failed\n\nSee log below for details.")
+                go_btn.setText("Close")
+                go_btn.clicked.disconnect()
+                go_btn.clicked.connect(dialog.accept)
 
         go_btn.clicked.connect(start_render)
         dialog.exec()
